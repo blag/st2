@@ -38,6 +38,8 @@ __all__ = [
 
 
 class SandboxingUtilsTestCase(unittest.TestCase):
+    maxDiff = None
+
     def setUp(self):
         super(SandboxingUtilsTestCase, self).setUp()
 
@@ -144,3 +146,28 @@ class SandboxingUtilsTestCase(unittest.TestCase):
                                               inherit_parent_virtualenv=True)
         self.assertEqual(python_path, ':/data/test1:/data/test2:%s/virtualenvtest' %
                          (sys.prefix))
+
+    @mock.patch('os.path.isdir', mock.Mock(return_value=True))
+    @mock.patch('os.path.exists', mock.Mock(return_value=True))
+    @mock.patch('os.listdir', mock.Mock(return_value=['python3.6']))
+    @mock.patch('st2common.util.sandboxing.get_sandbox_virtualenv_path',
+                mock.Mock(return_value='/st2_root/virtualenvs/mypack'))
+    @mock.patch('get_pack_base_path', mock.Mock(return_value='/st2_root/packs/mypack'))
+    @mock.patch('st2common.util.sandboxing.get_python_lib')
+    def test_get_sandbox_python_path_for_python_action_python3_used_for_venv(self,
+                                                                             mock_get_python_lib):
+        python_path = get_sandbox_python_path_for_python_action(pack='dummy_pack',
+                                                                inherit_from_parent=False,
+                                                                inherit_parent_virtualenv=False)
+        self.assertEqual(python_path, '')
+
+        # # Order of the Python paths is important
+        # python_paths = python_path.split(':')
+        # # All of the paths are hardcoded strings, so we don't need to use os.path.join
+        # # or pathlib.Path here
+        # self.assertEqual(python_paths[0], f'/usr/lib/{python_executable}')
+        # self.assertEqual(python_paths[1], f'/st2_root/virtualenvs/mypack/lib{python_executable}')
+        # self.assertEqual(python_paths[0], f'/usr/lib/python3.6')
+        # self.assertEqual(python_paths[1], f'/st2_root/virtualenvs/mypack/lib/python3.6/site-packages')
+        # self.assertEqual(python_paths[2], f'/st2_root/packs/mypack/actions/lib')
+        # self.assertEqual(python_paths[3], '')
